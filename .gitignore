@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Sessions and secrets
+.sessions_tg_upload/
+*.session
+*.session-journal
+/proxy.json
+/caption.json
+/config.py
+
+# Runtime artifacts
+/downloads_tg_upload/
+/split_tg_upload/
+/.upload_resume_tg_upload/
+/combine_tg_upload/
+/thumb_tg_upload/
+/.upload_tree_tg_upload/
+/log.txt
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+#temp
+ccna
+test_big

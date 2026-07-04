@@ -1,0 +1,6 @@
+kurigram
+tgcrypto
+httpx
+pillow
+rich
+natsort

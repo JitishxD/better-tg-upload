@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "better-tg-upload"
+version = "0.1.0"
+description = "CLI to upload/download files to Telegram using MTProto"
+requires-python = ">=3.10"
+dependencies = [
+    "kurigram",
+    "tgcrypto",
+    "httpx",
+    "pillow",
+    "rich",
+    "natsort",
+]
+
+[project.scripts]
+better-tg-upload = "better_tg_upload.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["better_tg_upload*"]
