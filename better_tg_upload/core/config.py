@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from argparse import Namespace
 from pathlib import Path
 from sys import version_info
 from typing import Any
@@ -155,12 +156,138 @@ def default_system_version() -> str:
     return cfg_str("SYSTEM_VERSION", fallback) or fallback
 
 
-def user_config_snapshot() -> dict[str, Any]:
-    load_user_config()
-    return dict(_USER)
-
-
 def mask_secret(value: object) -> object:
     if value and isinstance(value, str):
         return "***"
     return value
+
+
+_PATH_SPECS: tuple[tuple[str, str, str, str], ...] = (
+    ("session_dir", "sessions", "SESSION_DIR", "--session_dir"),
+    ("split_dir", "split", "SPLIT_DIR", "--split_dir"),
+    ("dl_dir", "downloads", "DL_DIR", "--dl_dir"),
+    ("combine_dir", "combine", "COMBINE_DIR", "--combine_dir"),
+    ("thumb_dir", "thumb", "THUMB_DIR", "--thumb_dir"),
+    ("upload_resume_dir", "upload_resume", "UPLOAD_RESUME_DIR", ""),
+    ("upload_tree_state_dir", "upload_tree", "UPLOAD_TREE_STATE_DIR", ""),
+)
+
+
+def _resolve_path(path: str) -> str:
+    return str(Path(path).resolve())
+
+
+def _cli_flag_used(flag: str) -> bool:
+    if not flag:
+        return False
+    for arg in sys.argv[1:]:
+        if arg == flag or arg.startswith(f"{flag}="):
+            return True
+    return False
+
+
+def _path_override_source(cli_flag: str, config_key: str) -> str:
+    if _cli_flag_used(cli_flag):
+        return "cli"
+    load_user_config()
+    val = _user_value(config_key)
+    if val is not _MISSING and not _is_empty(val):
+        return "config"
+    return "default"
+
+
+def resolved_paths(args: Namespace) -> dict[str, str]:
+    """Absolute paths the CLI will use for workspace data."""
+    paths = {
+        "session_dir": _resolve_path(args.session_dir),
+        "split_dir": _resolve_path(args.split_dir),
+        "dl_dir": _resolve_path(args.dl_dir),
+        "combine_dir": _resolve_path(args.combine_dir),
+        "thumb_dir": _resolve_path(args.thumb_dir),
+        "upload_resume_dir": _resolve_path(upload_resume_dir()),
+        "upload_tree_state_dir": _resolve_path(upload_tree_state_dir()),
+    }
+    return paths
+
+
+def path_overrides(args: Namespace) -> dict[str, dict[str, str]]:
+    """Paths that differ from the standard workspace layout."""
+    root = ensure_workspace()
+    paths = resolved_paths(args)
+    overrides: dict[str, dict[str, str]] = {}
+    for key, subdir, config_key, cli_flag in _PATH_SPECS:
+        effective = Path(paths[key])
+        default = (root / subdir).resolve()
+        if effective != default:
+            overrides[key] = {
+                "path": str(effective),
+                "source": _path_override_source(cli_flag, config_key),
+            }
+    return overrides
+
+
+def build_resolved_config(args: Namespace) -> dict[str, Any]:
+    """Effective settings after CLI > config.py > code defaults."""
+    load_user_config()
+    return {
+        "auth": {
+            "profile": args.profile,
+            "api_id": args.api_id,
+            "api_hash": mask_secret(args.api_hash),
+            "phone": args.phone,
+            "bot_token": mask_secret(args.bot),
+            "session_string": mask_secret(args.login_string),
+        },
+        "target": {
+            "path": args.path,
+            "chat_id": args.chat_id,
+            "caption": args.caption,
+            "capjson": args.capjson,
+            "filename": args.filename,
+            "thumb": args.thumb,
+            "thumb_seek": args.thumb_seek,
+            "duration": args.duration,
+            "parse_mode": args.parse_mode,
+            "reply_to": args.reply_to,
+            "self_destruct": args.self_destruct,
+        },
+        "upload": {
+            "equal_splits": args.equal_splits,
+            "no_resume": args.no_resume,
+            "keep_split_parts": args.keep_split_parts,
+            "document_only": args.document_only,
+            "disable_stream": args.disable_stream,
+            "reset_tree": args.reset_tree,
+            "sleep": args.sleep,
+            "prefix": args.prefix,
+            "replace": args.replace,
+            "tree_state": str(args.tree_state) if args.tree_state else None,
+        },
+        "download": {
+            "dl_dir": resolved_paths(args)["dl_dir"],
+            "auto_combine": args.auto_combine,
+        },
+        "client": {
+            "proxy": args.proxy,
+            "ipv6": args.ipv6,
+            "device_model": args.device_model,
+            "system_version": args.system_version,
+            "verbose": args.verbose,
+        },
+        "limits": {
+            "hash_memory_limit": args.hash_memory_limit,
+            "combine_memory_limit": args.combine_memory_limit,
+        },
+        "paths": resolved_paths(args),
+    }
+
+
+def build_env_snapshot(args: Namespace) -> dict[str, Any]:
+    """JSON-serializable snapshot for ``--env``."""
+    load_user_config()
+    return {
+        "config_file": str(config_path()) if config_path() else None,
+        "workspace_dir": str(ensure_workspace()),
+        "path_overrides": path_overrides(args),
+        "resolved": build_resolved_config(args),
+    }

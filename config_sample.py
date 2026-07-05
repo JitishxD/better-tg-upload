@@ -4,19 +4,11 @@
 #   copy config_sample.py config.py   # Windows
 #
 # CLI flags always override these values.
+# Run `better-tg-upload --env` to inspect resolved settings.
 
-# --- Auth / session ---
-PROFILE = "myprofile"
-API_ID = 0
-API_HASH = ""
-PHONE = ""
-BOT_TOKEN = ""
-SESSION_STRING = ""
-
-# --- Workspace ---
+# --- workspace ---
 WORKSPACE_DIR = ".tg_upload"
-# Defaults under WORKSPACE_DIR: sessions/, downloads/, split/, combine/, thumb/, upload_resume/, upload_tree/
-# Override individual dirs only if needed:
+# path_overrides — uncomment only when a path should differ from WORKSPACE_DIR layout:
 # SESSION_DIR = ".tg_upload/sessions"
 # SPLIT_DIR = ".tg_upload/split"
 # COMBINE_DIR = ".tg_upload/combine"
@@ -25,33 +17,41 @@ WORKSPACE_DIR = ".tg_upload"
 # UPLOAD_RESUME_DIR = ".tg_upload/upload_resume"
 # UPLOAD_TREE_STATE_DIR = ".tg_upload/upload_tree"
 
-# --- Upload target ---
+# --- auth ---
+PROFILE = "myprofile"
+API_ID = 0
+API_HASH = ""
+PHONE = ""
+BOT_TOKEN = ""
+SESSION_STRING = ""
+
+# --- target ---
 PATH = ""
 CHAT_ID = "me"
 CAPTION = ""
 CAPJSON = ""
+FILENAME = ""
 THUMB = ""
 THUMB_SEEK = 0  # 0 = middle of video; e.g. 2.5 for frame at 2.5 seconds
-FILENAME = ""
-PARSE_MODE = "DEFAULT"
 DURATION = 0
-
-# --- Upload behaviour ---
-EQUAL_SPLITS = False
-NO_RESUME = False
-KEEP_SPLIT_PARTS = False
-RESET_TREE = False
-DOCUMENT_ONLY = False
-DISABLE_STREAM = False
-SLEEP = 1.0
+PARSE_MODE = "DEFAULT"
 REPLY_TO = 0
 SELF_DESTRUCT = 0
 
-# --- Download ---
+# --- upload ---
+EQUAL_SPLITS = False
+NO_RESUME = False
+KEEP_SPLIT_PARTS = False
+DOCUMENT_ONLY = False
+DISABLE_STREAM = False
+RESET_TREE = False
+SLEEP = 1.0
+
+# --- download ---
 # Set DL = True to default to download mode (usually leave False; use --dl flag)
 DL = False
 
-# --- Client ---
+# --- client ---
 PROXY = ""
 IPV6 = False
 DEVICE_MODEL = "better-tg-upload"

@@ -5,7 +5,7 @@ from json import dumps
 from pathlib import Path
 
 from .client_manager import TelegramClientManager
-from .config import config_path, ensure_workspace, load_user_config, mask_secret, user_config_snapshot
+from .config import build_env_snapshot, ensure_workspace
 from .exceptions import CliError
 from .validate import validate_telegram_args
 from ..transfer.splitter import combine_files, split_file
@@ -116,26 +116,7 @@ def _run_utility_commands(args: Namespace) -> bool:
         return True
 
     if args.env:
-        load_user_config()
-        resolved = {
-            "config_file": str(config_path()) if config_path() else None,
-            "workspace_dir": str(ensure_workspace()),
-            "profile": args.profile,
-            "api_id": args.api_id,
-            "api_hash": mask_secret(args.api_hash),
-            "phone": args.phone,
-            "bot_token": mask_secret(args.bot),
-            "session_string": mask_secret(args.login_string),
-            "path": args.path,
-            "chat_id": args.chat_id,
-            "caption": args.caption,
-            "session_dir": args.session_dir,
-            "split_dir": args.split_dir,
-            "dl_dir": args.dl_dir,
-            "sleep": args.sleep,
-            "config_py": user_config_snapshot(),
-        }
-        print(dumps(resolved, indent=2, default=str))
+        print(dumps(build_env_snapshot(args), indent=2, default=str))
         return True
 
     # --frame is async, handled separately in run_cli
