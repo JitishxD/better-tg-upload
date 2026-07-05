@@ -5,7 +5,7 @@ from __future__ import annotations
 from argparse import Namespace
 from pathlib import Path
 
-from ..profiles.store import ensure_session_dir
+from .config import ensure_session_dir
 from .config import missing_msg
 from .exceptions import CliError
 

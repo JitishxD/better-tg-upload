@@ -9,15 +9,25 @@ from typing import Any
 
 # -------- Working-directory paths --------
 
-_SUFFIX = "_tg_upload"
+WORKSPACE_DIR = ".tg_upload"
 
-SPLIT_DIR = f"split{_SUFFIX}"
-COMBINE_DIR = f"combine{_SUFFIX}"
-DOWNLOADS_DIR = f"downloads{_SUFFIX}"
-THUMB_DIR = f"thumb{_SUFFIX}"
-SESSIONS_DIR = f".sessions{_SUFFIX}"
-UPLOAD_RESUME_DIR = f".upload_resume{_SUFFIX}"
-UPLOAD_TREE_STATE_DIR = f".upload_tree{_SUFFIX}"
+SESSIONS_DIR = f"{WORKSPACE_DIR}/sessions"
+DOWNLOADS_DIR = f"{WORKSPACE_DIR}/downloads"
+SPLIT_DIR = f"{WORKSPACE_DIR}/split"
+COMBINE_DIR = f"{WORKSPACE_DIR}/combine"
+THUMB_DIR = f"{WORKSPACE_DIR}/thumb"
+UPLOAD_RESUME_DIR = f"{WORKSPACE_DIR}/upload_resume"
+UPLOAD_TREE_STATE_DIR = f"{WORKSPACE_DIR}/upload_tree"
+
+_WORKSPACE_SUBDIRS = (
+    "sessions",
+    "downloads",
+    "split",
+    "combine",
+    "thumb",
+    "upload_resume",
+    "upload_tree",
+)
 
 _MISSING = object()
 _USER: dict[str, Any] = {}
@@ -72,6 +82,42 @@ def load_user_config() -> Path | None:
 def config_path() -> Path | None:
     load_user_config()
     return _CONFIG_PATH
+
+
+def workspace_root() -> Path:
+    """Resolved workspace directory (override with ``WORKSPACE_DIR`` in config.py)."""
+    load_user_config()
+    name = cfg_str("WORKSPACE_DIR", WORKSPACE_DIR) or WORKSPACE_DIR
+    return Path(name).resolve()
+
+
+def ensure_workspace() -> Path:
+    """Create the workspace folder and standard subfolders."""
+    root = workspace_root()
+    root.mkdir(parents=True, exist_ok=True)
+    for sub in _WORKSPACE_SUBDIRS:
+        (root / sub).mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def ensure_session_dir(path: str) -> Path:
+    """Create the session directory if needed and return it."""
+    session_dir = Path(path)
+    session_dir.mkdir(parents=True, exist_ok=True)
+    return session_dir
+
+
+def _resolve_dir(config_key: str, default: str) -> str:
+    load_user_config()
+    return cfg_str(config_key, default) or default
+
+
+def upload_resume_dir() -> str:
+    return _resolve_dir("UPLOAD_RESUME_DIR", UPLOAD_RESUME_DIR)
+
+
+def upload_tree_state_dir() -> str:
+    return _resolve_dir("UPLOAD_TREE_STATE_DIR", UPLOAD_TREE_STATE_DIR)
 
 
 def cfg_str(name: str, default: str | None = None) -> str | None:

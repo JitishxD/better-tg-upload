@@ -28,7 +28,7 @@ def _split_thread(raw: str) -> tuple[str, int | None]:
 
 
 async def resolve_chat_target(client: Client, raw: str) -> ChatTarget:
-    """Resolve and cache a chat before upload (get_chat check).
+    """Resolve and cache a chat before upload.
 
     Accepts: me, @username, -100..., or -100...|topic_id
     """

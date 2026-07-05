@@ -13,7 +13,7 @@ from typing import TypedDict, cast
 from pyrogram.client import Client
 
 from ..utils.fs import format_bytes
-from ..core.config import UPLOAD_RESUME_DIR
+from ..core.config import upload_resume_dir
 from .splitter import (
     clear_all_parts,
     discover_binary_parts,
@@ -124,7 +124,7 @@ class SplitResumeStore:
     @classmethod
     def default_path(cls, profile: str) -> Path:
         safe = hashlib.sha256(profile.encode("utf-8")).hexdigest()[:12]
-        return Path(UPLOAD_RESUME_DIR) / f"{safe}.json"
+        return Path(upload_resume_dir()) / f"{safe}.json"
 
     @classmethod
     def load(

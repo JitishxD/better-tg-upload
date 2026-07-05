@@ -169,7 +169,20 @@ better-tg-upload --profile mybot --api_id 12345 --api_hash abc123 --bot "123456:
 better-tg-upload --profile myprofile --login_string "BQC..." --login_only
 ```
 
-Sessions are stored in `.sessions_tg_upload/` by default (`SESSION_DIR` in `config.py`).
+Sessions and all runtime data live under **`.tg_upload/`** in the directory where you run commands (override with `WORKSPACE_DIR` in `config.py`):
+
+```
+.tg_upload/
+├── sessions/        # Telegram session files
+├── downloads/       # --dl output
+├── split/           # local split parts
+├── combine/         # offline --combine output
+├── thumb/           # temp thumbnails
+├── upload_resume/   # split upload progress
+└── upload_tree/     # folder upload progress
+```
+
+Sessions are stored in `.tg_upload/sessions/` by default (`SESSION_DIR` in `config.py`).
 
 ### Private channels and numeric IDs
 
@@ -279,9 +292,9 @@ Re-run the same command to resume an interrupted split upload.
 
 | Path | Used for |
 |------|----------|
-| `.upload_tree_tg_upload/<folder>_<hash>.json` | Folder upload progress (folders announced, files done, split progress) |
-| `.upload_resume_tg_upload/` | Single-file split upload progress |
-| `split_tg_upload/<hash>/` | Local split part files on disk |
+| `.tg_upload/upload_tree/<folder>_<hash>.json` | Folder upload progress |
+| `.tg_upload/upload_resume/` | Single-file split upload progress |
+| `.tg_upload/split/<hash>/` | Local split part files on disk |
 
 Flags: `--no_resume`, `--reset_tree`, `--keep_split_parts`.
 
@@ -320,6 +333,15 @@ better-tg-upload -p myprofile --dl --links https://t.me/c/123/100 https://t.me/c
 # Custom download directory
 better-tg-upload -p myprofile --dl --links https://t.me/channel/123 --dl_dir ./my_downloads
 ```
+
+Files save to **`.tg_upload/downloads/`** (or `--dl_dir` / `DL_DIR`). The CLI prints the full path:
+
+```
+Download directory: E:\path\better-tg-upload\.tg_upload\downloads
+Saved -> E:\path\better-tg-upload\.tg_upload\downloads\dummy.bin.001
+```
+
+With **`--auto_combine`**, split parts (`.001`, `.002`, …) merge into the base filename in the same folder, then parts are deleted.
 
 <a id="utilities"></a>
 
@@ -399,8 +421,8 @@ If ffmpeg split fails for a video, the tool falls back to GNU/binary split (`mov
 
 | Path | Purpose |
 |------|---------|
-| `split_tg_upload/<hash>/` | Local split parts (in the directory where you run the command) |
-| `.upload_resume_tg_upload/` | JSON progress (next part to upload) |
+| `.tg_upload/split/<hash>/` | Local split parts |
+| `.tg_upload/upload_resume/` | JSON progress (next part to upload) |
 
 Re-run the **same command** after Ctrl+C or a disconnect to continue. Use `--no_resume` to ignore saved progress, or `--keep_split_parts` to keep local parts after success.
 
@@ -421,7 +443,7 @@ Re-run the **same command** after Ctrl+C or a disconnect to continue. Use `--no_
 | `--as_voice` | | Send as voice message |
 | `--as_video_note` | | Send as video note (round video) |
 | `--equal_splits` | | Split oversized files into equal-sized parts |
-| `--split_dir` | | Local split parts directory (default: `split_tg_upload`) |
+| `--split_dir` | | Local split parts directory (default: `.tg_upload/split`) |
 | `--no_resume` | | Do not resume interrupted uploads |
 | `--keep_split_parts` | | Keep local split part files after success |
 | `--tree_state` | | Folder resume JSON path |
@@ -450,7 +472,7 @@ Re-run the **same command** after Ctrl+C or a disconnect to continue. Use `--no_
 | `--msg_id` | | Message IDs to download |
 | `--range` | | Download all messages between first and last link/ID |
 | `--auto_combine` | `-j` | Auto-combine split parts after download |
-| `--dl_dir` | | Download directory (default: `downloads_tg_upload`) |
+| `--dl_dir` | | Download directory (default: `.tg_upload/downloads`) |
 | `--chat_id` | `-c` | Source chat for `--msg_id` downloads |
 
 ## Caption template variables
@@ -485,7 +507,8 @@ Copy `config_sample.py` → `config.py`. All keys:
 | `PHONE` | `--phone` | Phone for user login |
 | `BOT_TOKEN` | `--bot` | Bot token |
 | `SESSION_STRING` | `--login_string` | Session string login |
-| `SESSION_DIR` | `--session_dir` | Session files directory |
+| `WORKSPACE_DIR` | | Parent folder for all CLI data (default: `.tg_upload`) |
+| `SESSION_DIR` | `--session_dir` | Session files (default: `.tg_upload/sessions`) |
 | `PATH` | `-l` | Default upload path |
 | `CHAT_ID` | `-c` | Default target chat |
 | `CAPTION` | `-z` | Caption template (empty = use filename) |
@@ -500,10 +523,12 @@ Copy `config_sample.py` → `config.py`. All keys:
 | `RESET_TREE` | `--reset_tree` | Clear folder upload state |
 | `DOCUMENT_ONLY` | `--document_only` | Force document uploads |
 | `SLEEP` | `--sleep` | Seconds between uploads |
-| `SPLIT_DIR` | `--split_dir` | Split parts directory |
-| `COMBINE_DIR` | `--combine_dir` | Offline combine output |
-| `DL_DIR` | `--dl_dir` | Download directory |
-| `THUMB_DIR` | `--thumb_dir` | Temp thumbnails |
+| `SPLIT_DIR` | `--split_dir` | Split parts (default: `.tg_upload/split`) |
+| `COMBINE_DIR` | `--combine_dir` | Offline combine output (default: `.tg_upload/combine`) |
+| `DL_DIR` | `--dl_dir` | Download directory (default: `.tg_upload/downloads`) |
+| `THUMB_DIR` | `--thumb_dir` | Temp thumbnails (default: `.tg_upload/thumb`) |
+| `UPLOAD_RESUME_DIR` | | Split upload resume JSON (default: `.tg_upload/upload_resume`) |
+| `UPLOAD_TREE_STATE_DIR` | | Folder upload resume JSON (default: `.tg_upload/upload_tree`) |
 | `PROXY` | `--proxy` | Proxy name from `proxy.json` |
 | `VERBOSE` | `-v` | Debug logging |
 
@@ -600,11 +625,11 @@ pip install kurigram tgcrypto
 
 Pyrogram stores sessions as `{session_dir}/{profile}.session`. Pass only the profile name via `--profile`; do not embed the session directory in the profile name.
 
-Ensure the session directory exists and is writable (default: `.sessions_tg_upload/`):
+Ensure the session directory exists and is writable (default: `.tg_upload/sessions/`):
 
 ```bash
 better-tg-upload -p myprofile --api_id ... --api_hash ... --phone ... --login_only
-# creates .sessions_tg_upload/myprofile.session
+# creates .tg_upload/sessions/myprofile.session
 ```
 
 ### 3. `PROFILE is missing`
@@ -639,7 +664,7 @@ better-tg-upload -p myprofile -l .\myfile.zip -c "-1005720877997"
 
 ### 9. ffmpeg split failed / wrong part names
 
-Ensure `ffmpeg` and `ffprobe` are on your `PATH`. If ffmpeg cannot split a video, the tool falls back to GNU-style `filename.ext.001` parts (not streamable). Check `split_tg_upload/` for existing parts before re-running.
+Ensure `ffmpeg` and `ffprobe` are on your `PATH`. If ffmpeg cannot split a video, the tool falls back to GNU-style `filename.ext.001` parts (not streamable). Check `.tg_upload/split/` for existing parts before re-running.
 
 ### 10. `Frame capture failed` / thumbnail errors
 
@@ -653,8 +678,8 @@ The tool retries automatically with the wait time Telegram specifies. For large 
 
 Press Ctrl+C to interrupt (exit code `130`).
 
-- **Folder upload:** re-run the same command; progress in `.upload_tree_tg_upload/`
-- **Split file:** re-run the same command; parts in `split_tg_upload/`, progress in `.upload_resume_tg_upload/`
+- **Folder upload:** re-run the same command; progress in `.tg_upload/upload_tree/`
+- **Split file:** re-run the same command; parts in `.tg_upload/split/`, progress in `.tg_upload/upload_resume/`
 
 ### 13. Bot file size limit
 

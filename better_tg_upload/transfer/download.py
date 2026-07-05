@@ -34,9 +34,10 @@ def _resolve_message_filename(message, fallback_prefix: str = "MSG") -> str:
 
 
 async def _download_message(client: Client, message, out_dir: Path, args: Namespace) -> Path:
+    out_dir = out_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     name = _resolve_message_filename(message)
-    out_path = out_dir / name
+    out_path = (out_dir / name).resolve()
     progress = TransferProgress("DL", name)
 
     async def action():
@@ -49,7 +50,9 @@ async def _download_message(client: Client, message, out_dir: Path, args: Namesp
     progress.newline()
     if not result:
         raise CliError(f"Download failed for message {message.id}.")
-    return Path(result)
+    saved = Path(result).resolve()
+    print(f"Saved -> {saved}")
+    return saved
 
 
 async def _get_message(client: Client, chat_id: int | str, message_id: int):
@@ -65,22 +68,43 @@ def _range(a: int, b: int) -> range:
 
 def _auto_combine(out_dir: Path, args: Namespace) -> None:
     """Discover and combine split part groups in the download directory."""
+    out_dir = out_dir.resolve()
     groups = discover_part_groups(out_dir)
     if not groups:
+        files = sorted(p.name for p in out_dir.iterdir() if p.is_file())
+        if files:
+            shown = ", ".join(files[:8])
+            if len(files) > 8:
+                shown += ", ..."
+            print(f"No split part groups to combine in {out_dir} (found: {shown})")
+        else:
+            print(f"No files to combine in {out_dir}")
         return
+
     chunk_size = max(int(args.combine_memory_limit), 1)
     for base_name, parts in groups.items():
         out_path = out_dir / base_name
+        expected_size = sum(part.stat().st_size for part in parts)
         print(f"Combining {len(parts)} parts -> {out_path}")
         combine_files(parts, out_path, chunk_size)
-        # Clean up parts after successful combine
+        if not out_path.is_file():
+            raise CliError(f"Combine failed: output not created: {out_path}")
+        actual_size = out_path.stat().st_size
+        if actual_size != expected_size:
+            raise CliError(
+                f"Combine size mismatch for {out_path}: "
+                f"expected {expected_size} bytes, got {actual_size} bytes. "
+                "Part files were left in place."
+            )
         for part in parts:
             part.unlink(missing_ok=True)
-        print(f"Combined successfully: {out_path}")
+        print(f"Combined successfully -> {out_path} ({actual_size} bytes)")
 
 
 async def run_download_mode(client: Client, args: Namespace) -> None:
-    out_dir = Path(args.dl_dir)
+    out_dir = Path(args.dl_dir).resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Download directory: {out_dir}")
     links = [x.strip() for x in args.links if str(x).strip()]
     if args.txt_file:
         txt = Path(args.txt_file)

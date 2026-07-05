@@ -17,7 +17,7 @@ from pyrogram.client import Client
 from ..core.chat_resolve import resolve_chat_target
 from ..core.exceptions import CliError
 from ..utils.fs import format_bytes
-from ..core.config import UPLOAD_TREE_STATE_DIR
+from ..core.config import upload_tree_state_dir
 from .large_upload import (
     cleanup_split_dir,
     get_upload_limit,
@@ -52,7 +52,7 @@ def _file_fingerprint(path: Path) -> dict[str, int | float]:
 
 def default_tree_state_path(root: Path) -> Path:
     digest = hashlib.sha256(str(root.resolve()).encode("utf-8")).hexdigest()[:12]
-    return Path(UPLOAD_TREE_STATE_DIR) / f"{root.name}_{digest}.json"
+    return Path(upload_tree_state_dir()) / f"{root.name}_{digest}.json"
 
 
 def _sort_names(names: list[str]) -> list[str]:

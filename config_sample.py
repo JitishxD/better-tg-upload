@@ -12,7 +12,18 @@ API_HASH = ""
 PHONE = ""
 BOT_TOKEN = ""
 SESSION_STRING = ""
-SESSION_DIR = ".sessions_tg_upload"
+
+# --- Workspace ---
+WORKSPACE_DIR = ".tg_upload"
+# Defaults under WORKSPACE_DIR: sessions/, downloads/, split/, combine/, thumb/, upload_resume/, upload_tree/
+# Override individual dirs only if needed:
+# SESSION_DIR = ".tg_upload/sessions"
+# SPLIT_DIR = ".tg_upload/split"
+# COMBINE_DIR = ".tg_upload/combine"
+# DL_DIR = ".tg_upload/downloads"
+# THUMB_DIR = ".tg_upload/thumb"
+# UPLOAD_RESUME_DIR = ".tg_upload/upload_resume"
+# UPLOAD_TREE_STATE_DIR = ".tg_upload/upload_tree"
 
 # --- Upload target ---
 PATH = ""
@@ -35,12 +46,6 @@ DISABLE_STREAM = False
 SLEEP = 1.0
 REPLY_TO = 0
 SELF_DESTRUCT = 0
-
-# --- Paths ---
-SPLIT_DIR = "split_tg_upload"
-COMBINE_DIR = "combine_tg_upload"
-DL_DIR = "downloads_tg_upload"
-THUMB_DIR = "thumb_tg_upload"
 
 # --- Download ---
 # Set DL = True to default to download mode (usually leave False; use --dl flag)

@@ -5,7 +5,7 @@ from json import dumps
 from pathlib import Path
 
 from .client_manager import TelegramClientManager
-from .config import config_path, load_user_config, mask_secret, user_config_snapshot
+from .config import config_path, ensure_workspace, load_user_config, mask_secret, user_config_snapshot
 from .exceptions import CliError
 from .validate import validate_telegram_args
 from ..transfer.splitter import combine_files, split_file
@@ -119,6 +119,7 @@ def _run_utility_commands(args: Namespace) -> bool:
         load_user_config()
         resolved = {
             "config_file": str(config_path()) if config_path() else None,
+            "workspace_dir": str(ensure_workspace()),
             "profile": args.profile,
             "api_id": args.api_id,
             "api_hash": mask_secret(args.api_hash),
@@ -191,6 +192,7 @@ async def run_cli(args: Namespace) -> int:
         return 0
 
     try:
+        ensure_workspace()
         validate_telegram_args(args)
         async with TelegramClientManager(args) as client:
             if await _run_login_flows(client, args):

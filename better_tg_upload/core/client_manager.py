@@ -3,7 +3,7 @@ from json import load
 from pathlib import Path
 from typing import Any
 
-from ..profiles.store import ensure_session_dir
+from .config import ensure_session_dir
 from .exceptions import CliError
 
 
