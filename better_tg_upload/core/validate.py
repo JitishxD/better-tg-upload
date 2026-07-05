@@ -5,9 +5,18 @@ from __future__ import annotations
 from argparse import Namespace
 from pathlib import Path
 
-from .config import ensure_session_dir
+from .config import config_path, ensure_session_dir
 from .config import missing_msg
 from .exceptions import CliError
+
+
+def has_operation_intent(args: Namespace) -> bool:
+    """True when the user requested an action (not a bare ``better-tg-upload``)."""
+    if args.login_only or args.logout or args.export_string or args.info:
+        return True
+    if args.dl:
+        return bool(args.links or args.txt_file or args.msg_id)
+    return bool(args.path)
 
 
 def _session_path(args: Namespace) -> Path | None:
@@ -82,7 +91,10 @@ def validate_telegram_args(args: Namespace) -> None:
     missing = collect_missing(args)
     if not missing:
         return
+    footer = ""
+    if config_path() is None:
+        footer = "\n\nNo config found. Run: better-tg-upload --init"
     if len(missing) == 1:
-        raise CliError(missing[0])
+        raise CliError(f"{missing[0]}{footer}")
     lines = "\n".join(f"  • {item}" for item in missing)
-    raise CliError(f"Missing required settings:\n{lines}")
+    raise CliError(f"Missing required settings:\n{lines}{footer}")

@@ -4,17 +4,12 @@ from sys import version_info
 
 from .. import __version__
 from ..core.config import (
-    COMBINE_DIR,
-    DOWNLOADS_DIR,
-    SESSIONS_DIR,
-    SPLIT_DIR,
-    THUMB_DIR,
-    UPLOAD_TREE_STATE_DIR,
     cfg_bool,
     cfg_float,
     cfg_int,
     cfg_str,
     default_system_version,
+    workspace_subdir,
 )
 
 
@@ -28,6 +23,27 @@ def build_parser() -> ArgumentParser:
         "--version",
         action="version",
         version=f"better-tg-upload {__version__} (python {version_info.major}.{version_info.minor}.{version_info.micro})",
+    )
+
+    parser.add_argument(
+        "--config",
+        default=None,
+        help="Config file (default: ~/.better-tg-upload/config.py).",
+    )
+    parser.add_argument(
+        "--workspace",
+        default=None,
+        help="Workspace data directory (default: ~/.better-tg-upload/.tg_upload).",
+    )
+    parser.add_argument(
+        "--init",
+        action="store_true",
+        help="Initialize ~/.better-tg-upload (config + workspace).",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="With --init, overwrite an existing config.py.",
     )
 
     # Connectivity
@@ -230,7 +246,7 @@ def build_parser() -> ArgumentParser:
         "--tree_state",
         type=Path,
         default=None,
-        help=f"Folder upload resume JSON (default: {UPLOAD_TREE_STATE_DIR}/<folder>_<hash>.json).",
+        help=f"Folder upload resume JSON (default: {workspace_subdir('upload_tree')}/<folder>_<hash>.json).",
     )
     parser.add_argument(
         "--reset_tree",
@@ -261,11 +277,11 @@ def build_parser() -> ArgumentParser:
         default=cfg_int("COMBINE_MEMORY_LIMIT", 1_000_000),
         type=int,
     )
-    parser.add_argument("--split_dir", default=cfg_str("SPLIT_DIR", SPLIT_DIR))
+    parser.add_argument("--split_dir", default=cfg_str("SPLIT_DIR", workspace_subdir("split")))
     parser.add_argument(
-        "--combine_dir", default=cfg_str("COMBINE_DIR", COMBINE_DIR)
+        "--combine_dir", default=cfg_str("COMBINE_DIR", workspace_subdir("combine"))
     )
-    parser.add_argument("--thumb_dir", default=cfg_str("THUMB_DIR", THUMB_DIR))
+    parser.add_argument("--thumb_dir", default=cfg_str("THUMB_DIR", workspace_subdir("thumb")))
     parser.add_argument("--no_update", action="store_true")
 
     # Download
@@ -290,7 +306,7 @@ def build_parser() -> ArgumentParser:
         "--msg_id", nargs="*", type=int, default=[], help="Message IDs to download."
     )
     parser.add_argument(
-        "--dl_dir", default=cfg_str("DL_DIR", DOWNLOADS_DIR), help="DL dir."
+        "--dl_dir", default=cfg_str("DL_DIR", workspace_subdir("downloads")), help="DL dir."
     )
 
     # Utility
@@ -325,7 +341,7 @@ def build_parser() -> ArgumentParser:
     )
     parser.add_argument(
         "--session_dir",
-        default=cfg_str("SESSION_DIR", SESSIONS_DIR),
+        default=cfg_str("SESSION_DIR", workspace_subdir("sessions")),
         help="Directory for session files.",
     )
     parser.add_argument(

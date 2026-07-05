@@ -13,15 +13,14 @@ __pycache__/
 /.venv/
 /env/
 
-# Sessions and secrets
-*.session
-*.session-journal
+# Runtime data lives in ~/.better-tg-upload/ 
+# i would keep these in case i accidentally add them
+/config.py
 /proxy.json
 /caption.json
-/config.py
-
-# CLI workspace (sessions, downloads, split parts, resume state, …)
 /.tg_upload/
+*.session
+*.session-journal
 
 # IDE / OS
 .idea/

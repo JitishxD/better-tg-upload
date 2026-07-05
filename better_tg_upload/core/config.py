@@ -2,23 +2,20 @@
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 from argparse import Namespace
 from pathlib import Path
 from sys import version_info
 from typing import Any
 
-# -------- Working-directory paths --------
+from .exceptions import CliError
 
-WORKSPACE_DIR = ".tg_upload"
+APP_DIR_NAME = ".better-tg-upload"
+WORKSPACE_NAME = ".tg_upload"
 
-SESSIONS_DIR = f"{WORKSPACE_DIR}/sessions"
-DOWNLOADS_DIR = f"{WORKSPACE_DIR}/downloads"
-SPLIT_DIR = f"{WORKSPACE_DIR}/split"
-COMBINE_DIR = f"{WORKSPACE_DIR}/combine"
-THUMB_DIR = f"{WORKSPACE_DIR}/thumb"
-UPLOAD_RESUME_DIR = f"{WORKSPACE_DIR}/upload_resume"
-UPLOAD_TREE_STATE_DIR = f"{WORKSPACE_DIR}/upload_tree"
+_DEFAULT_HOME = Path.home() / APP_DIR_NAME
+_DEFAULT_WORKSPACE = _DEFAULT_HOME / WORKSPACE_NAME
 
 _WORKSPACE_SUBDIRS = (
     "sessions",
@@ -34,11 +31,60 @@ _MISSING = object()
 _USER: dict[str, Any] = {}
 _CONFIG_LOADED = False
 _CONFIG_PATH: Path | None = None
+_CONFIG_OVERRIDE: Path | None = None
+_WORKSPACE_OVERRIDE: Path | None = None
+
+
+def app_home() -> Path:
+    """Global app directory under the user home."""
+    return _DEFAULT_HOME
+
+
+def default_config_path() -> Path:
+    return app_home() / "config.py"
+
+
+def default_workspace_path() -> Path:
+    return app_home() / WORKSPACE_NAME
+
+
+def set_config_path(path: Path | None) -> None:
+    """Override the config file path (from ``--config``)."""
+    global _CONFIG_OVERRIDE, _CONFIG_LOADED, _CONFIG_PATH
+    _USER.clear()
+    _CONFIG_LOADED = False
+    _CONFIG_PATH = None
+    if path is None:
+        _CONFIG_OVERRIDE = None
+        return
+    resolved = path.expanduser().resolve()
+    if not resolved.is_file():
+        raise CliError(f"Config file not found: {resolved}")
+    _CONFIG_OVERRIDE = resolved
+
+
+def set_workspace_path(path: Path | None) -> None:
+    """Override the workspace directory (from ``--workspace``)."""
+    global _WORKSPACE_OVERRIDE
+    _WORKSPACE_OVERRIDE = path.expanduser().resolve() if path else None
+
+
+def resolved_config_path() -> Path:
+    if _CONFIG_OVERRIDE is not None:
+        return _CONFIG_OVERRIDE
+    return default_config_path()
+
+
+def config_dir() -> Path:
+    path = config_path()
+    if path is not None:
+        return path.parent
+    return app_home()
 
 
 def missing_msg(name: str, cli_flag: str) -> str:
     """Human-readable hint when a setting is absent from CLI and config.py."""
-    return f"{name} is missing. Set {name} in config.py or pass {cli_flag}."
+    return f"{name} is missing (config.py or {cli_flag})."
 
 
 def _is_empty(value: Any) -> bool:
@@ -55,28 +101,33 @@ def _user_value(name: str) -> Any:
     return _USER[name]
 
 
+def _load_config_file(path: Path) -> dict[str, Any]:
+    spec = importlib.util.spec_from_file_location("btu_user_config", path)
+    if spec is None or spec.loader is None:
+        raise CliError(f"Failed to load config: {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return {
+        key: value
+        for key, value in vars(module).items()
+        if not key.startswith("_")
+    }
+
+
 def load_user_config() -> Path | None:
-    """Import ``config.py`` from the current working directory."""
+    """Load ``config.py`` from the resolved global config path."""
     global _CONFIG_LOADED, _CONFIG_PATH
     if _CONFIG_LOADED:
         return _CONFIG_PATH
     _CONFIG_LOADED = True
 
-    cwd = str(Path.cwd())
-    if cwd not in sys.path:
-        sys.path.insert(0, cwd)
-
-    try:
-        import config as user_config  # noqa: PLC0415
-    except ModuleNotFoundError:
+    path = resolved_config_path()
+    if not path.is_file():
         _CONFIG_PATH = None
         return None
 
-    _CONFIG_PATH = Path(getattr(user_config, "__file__", "config.py")).resolve()
-    for key, value in vars(user_config).items():
-        if key.startswith("_"):
-            continue
-        _USER[key] = value
+    _CONFIG_PATH = path.resolve()
+    _USER.update(_load_config_file(_CONFIG_PATH))
     return _CONFIG_PATH
 
 
@@ -85,11 +136,35 @@ def config_path() -> Path | None:
     return _CONFIG_PATH
 
 
-def workspace_root() -> Path:
-    """Resolved workspace directory (override with ``WORKSPACE_DIR`` in config.py)."""
+def config_source() -> str:
+    if _CONFIG_OVERRIDE is not None:
+        return "cli"
+    return "global"
+
+
+def workspace_source() -> str:
+    if _WORKSPACE_OVERRIDE is not None:
+        return "cli"
     load_user_config()
-    name = cfg_str("WORKSPACE_DIR", WORKSPACE_DIR) or WORKSPACE_DIR
-    return Path(name).resolve()
+    val = _user_value("WORKSPACE_DIR")
+    if val is not _MISSING and not _is_empty(val):
+        return "config"
+    return "global"
+
+
+def workspace_root() -> Path:
+    """Resolved workspace directory for runtime data."""
+    if _WORKSPACE_OVERRIDE is not None:
+        return _WORKSPACE_OVERRIDE
+    load_user_config()
+    default = str(default_workspace_path())
+    name = cfg_str("WORKSPACE_DIR", default) or default
+    return Path(name).expanduser().resolve()
+
+
+def workspace_subdir(name: str) -> str:
+    """Default absolute path for a standard folder under the resolved workspace."""
+    return str(workspace_root() / name)
 
 
 def ensure_workspace() -> Path:
@@ -114,11 +189,11 @@ def _resolve_dir(config_key: str, default: str) -> str:
 
 
 def upload_resume_dir() -> str:
-    return _resolve_dir("UPLOAD_RESUME_DIR", UPLOAD_RESUME_DIR)
+    return _resolve_dir("UPLOAD_RESUME_DIR", workspace_subdir("upload_resume"))
 
 
 def upload_tree_state_dir() -> str:
-    return _resolve_dir("UPLOAD_TREE_STATE_DIR", UPLOAD_TREE_STATE_DIR)
+    return _resolve_dir("UPLOAD_TREE_STATE_DIR", workspace_subdir("upload_tree"))
 
 
 def cfg_str(name: str, default: str | None = None) -> str | None:
@@ -286,8 +361,12 @@ def build_env_snapshot(args: Namespace) -> dict[str, Any]:
     """JSON-serializable snapshot for ``--env``."""
     load_user_config()
     return {
-        "config_file": str(config_path()) if config_path() else None,
+        "app_home": str(app_home()),
+        "config_file": str(resolved_config_path()),
+        "config_loaded": config_path() is not None,
+        "config_source": config_source(),
         "workspace_dir": str(ensure_workspace()),
+        "workspace_source": workspace_source(),
         "path_overrides": path_overrides(args),
         "resolved": build_resolved_config(args),
     }

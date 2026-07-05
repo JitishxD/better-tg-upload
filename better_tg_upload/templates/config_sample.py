@@ -1,21 +1,20 @@
-# Copy this file to config.py and edit (config.py is gitignored).
-#
-#   cp config_sample.py config.py   # Linux/macOS
-#   copy config_sample.py config.py   # Windows
+# Global config for better-tg-upload (created by `better-tg-upload init`).
+# Default location: ~/.better-tg-upload/config.py
 #
 # CLI flags always override these values.
 # Run `better-tg-upload --env` to inspect resolved settings.
 
 # --- workspace ---
-WORKSPACE_DIR = ".tg_upload"
-# path_overrides — uncomment only when a path should differ from WORKSPACE_DIR layout:
-# SESSION_DIR = ".tg_upload/sessions"
-# SPLIT_DIR = ".tg_upload/split"
-# COMBINE_DIR = ".tg_upload/combine"
-# DL_DIR = ".tg_upload/downloads"
-# THUMB_DIR = ".tg_upload/thumb"
-# UPLOAD_RESUME_DIR = ".tg_upload/upload_resume"
-# UPLOAD_TREE_STATE_DIR = ".tg_upload/upload_tree"
+# All runtime data (sessions, downloads, split, …) lives under this folder.
+WORKSPACE_DIR = "~/.better-tg-upload/.tg_upload"
+# path_overrides — uncomment only when a subfolder should differ from WORKSPACE_DIR:
+# SESSION_DIR = "/custom/sessions"
+# SPLIT_DIR = "/custom/split"
+# COMBINE_DIR = "/custom/combine"
+# DL_DIR = "/custom/downloads"
+# THUMB_DIR = "/custom/thumb"
+# UPLOAD_RESUME_DIR = "/custom/upload_resume"
+# UPLOAD_TREE_STATE_DIR = "/custom/upload_tree"
 
 # --- auth ---
 PROFILE = "myprofile"
@@ -58,6 +57,6 @@ DEVICE_MODEL = "better-tg-upload"
 SYSTEM_VERSION = ""
 VERBOSE = False
 
-# --- Utility limits ---
+# --- limits ---
 HASH_MEMORY_LIMIT = 1_000_000
 COMBINE_MEMORY_LIMIT = 1_000_000

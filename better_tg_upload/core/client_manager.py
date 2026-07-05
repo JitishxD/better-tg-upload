@@ -3,7 +3,7 @@ from json import load
 from pathlib import Path
 from typing import Any
 
-from .config import ensure_session_dir
+from .config import config_dir, ensure_session_dir
 from .exceptions import CliError
 
 
@@ -15,7 +15,7 @@ class TelegramClientManager:
     def _load_proxy(self) -> dict | None:
         if not self.args.proxy:
             return None
-        proxy_file = Path("proxy.json")
+        proxy_file = config_dir() / "proxy.json"
         if not proxy_file.exists():
             raise CliError("proxy.json not found while --proxy is set.")
         with proxy_file.open("r", encoding="utf-8") as fp:

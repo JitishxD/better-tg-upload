@@ -5,6 +5,8 @@ from tempfile import NamedTemporaryFile
 
 from PIL import Image
 
+from ..core.config import config_dir
+
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 VIDEO_EXTS = {".mp4", ".mkv", ".webm", ".mov", ".avi", ".m4v"}
@@ -13,7 +15,7 @@ AUDIO_EXTS = {".mp3", ".flac", ".m4a", ".aac", ".wav", ".ogg", ".opus"}
 
 def load_caption_template(args: Namespace) -> tuple[str, str | None]:
     if args.capjson:
-        config = Path("caption.json")
+        config = config_dir() / "caption.json"
         if not config.exists():
             raise ValueError("caption.json not found while --capjson is set.")
         with config.open("r", encoding="utf-8") as fp:

@@ -75,8 +75,17 @@ ffprobe -version
 
 ## Installation
 
+### Install from GitHub (pip)
+
+Usable when launched as a Python module:
+
 ```bash
-# Clone the repository
+python -m pip install git+https://github.com/JitishxD/better-tg-upload.git
+```
+
+### Install from a local clone (development)
+
+```bash
 git clone https://github.com/JitishxD/better-tg-upload.git
 cd better-tg-upload
 
@@ -89,12 +98,33 @@ venv\Scripts\activate
 # macOS / Linux
 source venv/bin/activate
 
-# Install
 pip install .
 
-# Or install dependencies only
-pip install -r requirements.txt
+# Editable install while hacking on the code
+pip install -e .
 ```
+
+### Updating
+
+Update according to your install method:
+
+**From GitHub (pip):**
+
+```bash
+python -m pip install --force-reinstall git+https://github.com/JitishxD/better-tg-upload.git
+```
+
+**From local clone:**
+
+```bash
+cd better-tg-upload
+git pull
+pip install .
+```
+
+For an editable clone, `pip install -e .` again after `git pull` is enough.
+
+### Run
 
 After installation, the `better-tg-upload` command is available:
 
@@ -102,42 +132,62 @@ After installation, the `better-tg-upload` command is available:
 better-tg-upload --version
 ```
 
-Or run as a module:
+Or as a module:
 
-```powershell
+```bash
 python -m better_tg_upload --help
 ```
 
 ## Configuration (setup once)
 
-
-```powershell
-# Windows
-copy config_sample.py config.py
-
-# Linux / macOS
-cp config_sample.py config.py
+```bash
+better-tg-upload --init
 ```
 
-Edit `config.py` — minimum for daily use:
+This creates:
+
+```
+~/.better-tg-upload/
+├── config.py
+├── proxy.json          # optional, add when using --proxy
+├── caption.json        # optional, add when using --capjson
+└── .tg_upload/
+    ├── sessions/
+    ├── downloads/
+    ├── split/
+    ├── combine/
+    ├── thumb/
+    ├── upload_resume/
+    └── upload_tree/
+```
+
+On Windows, `~` is your user profile folder (e.g. `C:\Users\you\.better-tg-upload`).
+
+Edit `~/.better-tg-upload/config.py` — minimum for daily use:
 
 ```python
 PROFILE = "myprofile"
 API_ID = 12345678          # from https://my.telegram.org
 API_HASH = "your_api_hash"
 PHONE = "+1234567890"      # first login only
-CHAT_ID = "-1004486493608" # default upload target (or @channel)
+CHAT_ID = "-1001234567890" # default upload target (or @channel)
+# WORKSPACE_DIR = "D:/telegram-data/.tg_upload"  # optional; default ~/.better-tg-upload/.tg_upload
 ```
 
->`config.py` is **gitignored**.  
-> ***Run commands from the directory that contains `config.py`***.
+Run from **any directory** after setup. Optional overrides:
+
+| Flag | Purpose |
+|------|---------|
+| `--config PATH` | Use a different config file |
+| `--workspace PATH` | Use a different data directory |
 
 **Priority for reading variable** (highest wins):
 
 1. CLI flags (`-p`, `-l`, `-c`, …)
 2. `config.py`
+3. Built-in defaults
 
-If a setting is not provided by either, the CLI reports which values are missing.
+If a required setting is still missing, the CLI reports it
 
 Check what is active:
 
@@ -153,7 +203,7 @@ See [Configuration reference](#configuration-reference) for all keys.
 
 ### 1. Login (first time)
 
-Put `API_ID` and `API_HASH` in `config.py`, then:
+Put `API_ID` and `API_HASH` in `~/.better-tg-upload/config.py`, then:
 
 ```bash
 # User account — prompted for OTP
@@ -169,10 +219,10 @@ better-tg-upload --profile mybot --api_id 12345 --api_hash abc123 --bot "123456:
 better-tg-upload --profile myprofile --login_string "BQC..." --login_only
 ```
 
-Sessions and all runtime data live under **`.tg_upload/`** in the directory where you run commands (override with `WORKSPACE_DIR` in `config.py`):
+Sessions and all runtime data live under **`~/.better-tg-upload/.tg_upload/`** (override with `--workspace` or `WORKSPACE_DIR` in `config.py`):
 
 ```
-.tg_upload/
+~/.better-tg-upload/.tg_upload/
 ├── sessions/        # Telegram session files
 ├── downloads/       # --dl output
 ├── split/           # local split parts
@@ -182,7 +232,7 @@ Sessions and all runtime data live under **`.tg_upload/`** in the directory wher
 └── upload_tree/     # folder upload progress
 ```
 
-Sessions are stored in `.tg_upload/sessions/` by default (`SESSION_DIR` in `config.py`).
+Sessions are stored in `~/.better-tg-upload/.tg_upload/sessions/` by default.
 
 ### Private channels and numeric IDs
 
@@ -292,9 +342,9 @@ Re-run the same command to resume an interrupted split upload.
 
 | Path | Used for |
 |------|----------|
-| `.tg_upload/upload_tree/<folder>_<hash>.json` | Folder upload progress |
-| `.tg_upload/upload_resume/` | Single-file split upload progress |
-| `.tg_upload/split/<hash>/` | Local split part files on disk |
+| `~/.better-tg-upload/.tg_upload/upload_tree/<folder>_<hash>.json` | Folder upload progress |
+| `~/.better-tg-upload/.tg_upload/upload_resume/` | Single-file split upload progress |
+| `~/.better-tg-upload/.tg_upload/split/<hash>/` | Local split part files on disk |
 
 Flags: `--no_resume`, `--reset_tree`, `--keep_split_parts`.
 
@@ -334,11 +384,11 @@ better-tg-upload -p myprofile --dl --links https://t.me/c/123/100 https://t.me/c
 better-tg-upload -p myprofile --dl --links https://t.me/channel/123 --dl_dir ./my_downloads
 ```
 
-Files save to **`.tg_upload/downloads/`** (or `--dl_dir` / `DL_DIR`). The CLI prints the full path:
+Files save to **`~/.better-tg-upload/.tg_upload/downloads/`** by default (or `--dl_dir` / `DL_DIR`). The CLI prints the full path:
 
 ```
-Download directory: E:\path\better-tg-upload\.tg_upload\downloads
-Saved -> E:\path\better-tg-upload\.tg_upload\downloads\dummy.bin.001
+Download directory: C:\Users\you\.better-tg-upload\.tg_upload\downloads
+Saved -> C:\Users\you\.better-tg-upload\.tg_upload\downloads\dummy.bin.001
 ```
 
 With **`--auto_combine`**, split parts (`.001`, `.002`, …) merge into the base filename in the same folder, then parts are deleted.
@@ -348,6 +398,9 @@ With **`--auto_combine`**, split parts (`.001`, `.002`, …) merge into the base
 ### 4. Utilities (no Telegram connection needed)
 
 ```bash
+# Initialize config + workspace
+better-tg-upload --init
+
 # Compute file hashes
 better-tg-upload --hash myfile.zip
 
@@ -421,10 +474,20 @@ If ffmpeg split fails for a video, the tool falls back to GNU/binary split (`mov
 
 | Path | Purpose |
 |------|---------|
-| `.tg_upload/split/<hash>/` | Local split parts |
-| `.tg_upload/upload_resume/` | JSON progress (next part to upload) |
+| `~/.better-tg-upload/.tg_upload/split/<hash>/` | Local split parts |
+| `~/.better-tg-upload/.tg_upload/upload_resume/` | JSON progress (next part to upload) |
 
 Re-run the **same command** after Ctrl+C or a disconnect to continue. Use `--no_resume` to ignore saved progress, or `--keep_split_parts` to keep local parts after success.
+
+## Global Options
+
+| Flag | Description |
+|------|-------------|
+| `--init` | Create `~/.better-tg-upload/` (config + workspace) |
+| `--force` | With `--init`, overwrite an existing `config.py` |
+| `--config PATH` | Config file (default: `~/.better-tg-upload/config.py`) |
+| `--workspace PATH` | Data directory (default: `~/.better-tg-upload/.tg_upload`) |
+| `--env` | Show resolved config (JSON) |
 
 ## Upload Options
 
@@ -443,7 +506,7 @@ Re-run the **same command** after Ctrl+C or a disconnect to continue. Use `--no_
 | `--as_voice` | | Send as voice message |
 | `--as_video_note` | | Send as video note (round video) |
 | `--equal_splits` | | Split oversized files into equal-sized parts |
-| `--split_dir` | | Local split parts directory (default: `.tg_upload/split`) |
+| `--split_dir` | | Local split parts directory (default: under workspace `split/`) |
 | `--no_resume` | | Do not resume interrupted uploads |
 | `--keep_split_parts` | | Keep local split part files after success |
 | `--tree_state` | | Folder resume JSON path |
@@ -472,7 +535,7 @@ Re-run the **same command** after Ctrl+C or a disconnect to continue. Use `--no_
 | `--msg_id` | | Message IDs to download |
 | `--range` | | Download all messages between first and last link/ID |
 | `--auto_combine` | `-j` | Auto-combine split parts after download |
-| `--dl_dir` | | Download directory (default: `.tg_upload/downloads`) |
+| `--dl_dir` | | Download directory (default: under workspace `downloads/`) |
 | `--chat_id` | `-c` | Source chat for `--msg_id` downloads |
 
 ## Caption template variables
@@ -497,7 +560,7 @@ Use in `-z` / `--caption` or in `caption.json` (when set, replaces default filen
 
 ### `config.py` (recommended)
 
-Copy `config_sample.py` → `config.py`. All keys:
+Created by `better-tg-upload --init` at `~/.better-tg-upload/config.py`. All keys:
 
 | Key | CLI flag | Description |
 |-----|----------|-------------|
@@ -507,8 +570,8 @@ Copy `config_sample.py` → `config.py`. All keys:
 | `PHONE` | `--phone` | Phone for user login |
 | `BOT_TOKEN` | `--bot` | Bot token |
 | `SESSION_STRING` | `--login_string` | Session string login |
-| `WORKSPACE_DIR` | | Parent folder for all CLI data (default: `.tg_upload`) |
-| `SESSION_DIR` | `--session_dir` | Session files (default: `.tg_upload/sessions`) |
+| `WORKSPACE_DIR` | `--workspace` | Data directory; subfolders (`sessions/`, `downloads/`, …) are created under it |
+| `SESSION_DIR` | `--session_dir` | Session files (default: `{WORKSPACE_DIR}/sessions`) |
 | `PATH` | `-l` | Default upload path |
 | `CHAT_ID` | `-c` | Default target chat |
 | `CAPTION` | `-z` | Caption template (empty = use filename) |
@@ -523,12 +586,12 @@ Copy `config_sample.py` → `config.py`. All keys:
 | `RESET_TREE` | `--reset_tree` | Clear folder upload state |
 | `DOCUMENT_ONLY` | `--document_only` | Force document uploads |
 | `SLEEP` | `--sleep` | Seconds between uploads |
-| `SPLIT_DIR` | `--split_dir` | Split parts (default: `.tg_upload/split`) |
-| `COMBINE_DIR` | `--combine_dir` | Offline combine output (default: `.tg_upload/combine`) |
-| `DL_DIR` | `--dl_dir` | Download directory (default: `.tg_upload/downloads`) |
-| `THUMB_DIR` | `--thumb_dir` | Temp thumbnails (default: `.tg_upload/thumb`) |
-| `UPLOAD_RESUME_DIR` | | Split upload resume JSON (default: `.tg_upload/upload_resume`) |
-| `UPLOAD_TREE_STATE_DIR` | | Folder upload resume JSON (default: `.tg_upload/upload_tree`) |
+| `SPLIT_DIR` | `--split_dir` | Split parts (default under workspace `split/`) |
+| `COMBINE_DIR` | `--combine_dir` | Offline combine output (default under workspace `combine/`) |
+| `DL_DIR` | `--dl_dir` | Download directory (default under workspace `downloads/`) |
+| `THUMB_DIR` | `--thumb_dir` | Temp thumbnails (default under workspace `thumb/`) |
+| `UPLOAD_RESUME_DIR` | | Split upload resume JSON (default under workspace `upload_resume/`) |
+| `UPLOAD_TREE_STATE_DIR` | | Folder upload resume JSON (default under workspace `upload_tree/`) |
 | `PROXY` | `--proxy` | Proxy name from `proxy.json` |
 | `VERBOSE` | `-v` | Debug logging |
 
@@ -549,6 +612,8 @@ python -m better_tg_upload -l .\folder\
 
 ### `proxy.json`
 
+Place in `~/.better-tg-upload/proxy.json`.
+
 ```json
 {
   "myproxy": {
@@ -568,6 +633,8 @@ better-tg-upload -p myprofile --proxy myproxy -l file.zip -c @channel
 <a id="caption-json"></a>
 
 ### `caption.json`
+
+Place in `~/.better-tg-upload/caption.json`.
 
 ```json
 {
@@ -625,20 +692,21 @@ pip install kurigram tgcrypto
 
 Pyrogram stores sessions as `{session_dir}/{profile}.session`. Pass only the profile name via `--profile`; do not embed the session directory in the profile name.
 
-Ensure the session directory exists and is writable (default: `.tg_upload/sessions/`):
+Ensure the session directory exists and is writable (default: `~/.better-tg-upload/.tg_upload/sessions/`):
 
 ```bash
+better-tg-upload --init
 better-tg-upload -p myprofile --api_id ... --api_hash ... --phone ... --login_only
-# creates .tg_upload/sessions/myprofile.session
+# creates ~/.better-tg-upload/.tg_upload/sessions/myprofile.session
 ```
 
 ### 3. `PROFILE is missing`
 
-Set `PROFILE` in `config.py` or pass `-p` / `--profile`.
+Run `better-tg-upload --init`, set `PROFILE` in `config.py`, or pass `-p` / `--profile`.
 
 ### 4. `API_ID` / `API_HASH` is missing
 
-Required on first login when no session file exists yet. Set them in `config.py` or pass `--api_id` and `--api_hash`.
+Required on first login when no session file exists yet. Run `better-tg-upload --init`, set them in `config.py`, or pass `--api_id` and `--api_hash`.
 
 ### 5. `PATH is missing`
 
@@ -664,7 +732,7 @@ better-tg-upload -p myprofile -l .\myfile.zip -c "-1005720877997"
 
 ### 9. ffmpeg split failed / wrong part names
 
-Ensure `ffmpeg` and `ffprobe` are on your `PATH`. If ffmpeg cannot split a video, the tool falls back to GNU-style `filename.ext.001` parts (not streamable). Check `.tg_upload/split/` for existing parts before re-running.
+Ensure `ffmpeg` and `ffprobe` are on your `PATH`. If ffmpeg cannot split a video, the tool falls back to GNU-style `filename.ext.001` parts (not streamable). Check `~/.better-tg-upload/.tg_upload/split/` for existing parts before re-running.
 
 ### 10. `Frame capture failed` / thumbnail errors
 
@@ -678,8 +746,8 @@ The tool retries automatically with the wait time Telegram specifies. For large 
 
 Press Ctrl+C to interrupt (exit code `130`).
 
-- **Folder upload:** re-run the same command; progress in `.tg_upload/upload_tree/`
-- **Split file:** re-run the same command; parts in `.tg_upload/split/`, progress in `.tg_upload/upload_resume/`
+- **Folder upload:** re-run the same command; progress in `~/.better-tg-upload/.tg_upload/upload_tree/`
+- **Split file:** re-run the same command; parts in `~/.better-tg-upload/.tg_upload/split/`, progress in `~/.better-tg-upload/.tg_upload/upload_resume/`
 
 ### 13. Bot file size limit
 

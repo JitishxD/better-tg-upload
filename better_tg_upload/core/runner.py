@@ -7,7 +7,8 @@ from pathlib import Path
 from .client_manager import TelegramClientManager
 from .config import build_env_snapshot, ensure_workspace
 from .exceptions import CliError
-from .validate import validate_telegram_args
+from .setup import run_init
+from .validate import has_operation_intent, validate_telegram_args
 from ..transfer.splitter import combine_files, split_file
 from ..utils.fs import file_hashes
 
@@ -21,6 +22,7 @@ def _is_utility_only(args: Namespace) -> bool:
             args.convert,
             args.file_info,
             args.env,
+            args.init,
             args.frame is not None,
         ]
     )
@@ -64,6 +66,10 @@ async def _capture_frame(args: Namespace) -> bool:
 
 
 def _run_utility_commands(args: Namespace) -> bool:
+    if args.init:
+        run_init(force=bool(args.force))
+        return True
+
     if args.combine:
         parts = [Path(p) for p in args.combine]
         for p in parts:
@@ -170,6 +176,12 @@ async def run_cli(args: Namespace) -> int:
         return 1
 
     if _is_utility_only(args):
+        return 0
+
+    if not has_operation_intent(args):
+        from ..cli.parser import build_parser
+
+        build_parser().print_help()
         return 0
 
     try:
