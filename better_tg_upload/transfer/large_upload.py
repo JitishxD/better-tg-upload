@@ -67,7 +67,7 @@ def plan_split(file_size: int, upload_limit: int, *, equal_splits: bool) -> tupl
     limit_chunk = max_chunk_size(upload_limit)
     part_count = -(-file_size // limit_chunk)  # ceil division
     if equal_splits:
-        chunk_size = (file_size // part_count) + (file_size % part_count)
+        chunk_size = (file_size + part_count - 1) // part_count
     else:
         chunk_size = limit_chunk
         part_count = -(-file_size // chunk_size)

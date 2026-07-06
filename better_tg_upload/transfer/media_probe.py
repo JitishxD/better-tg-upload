@@ -39,7 +39,8 @@ async def _exec_fftool(
 
 def _temp_path(prefix: str, suffix: str) -> str:
     """Return a temp file path without creating the file (avoids ffmpeg overwrite prompt)."""
-    base = Path(os.environ.get("TEMP", os.environ.get("TMPDIR", ".")))
+    import tempfile
+    base = Path(tempfile.gettempdir())
     return str(base / f"{prefix}{int(time() * 1_000_000)}{suffix}")
 
 

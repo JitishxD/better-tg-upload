@@ -194,7 +194,9 @@ async def ffmpeg_split_video(
     multi_streams = True
     max_iterations = max(expected_parts, 1) + 8
 
-    for _ in range(max_iterations):
+    iteration = 0
+    while iteration < max_iterations:
+        iteration += 1
         if part_no > expected_parts and start_time >= max(duration - 4, 0) and parts:
             break
 
@@ -251,6 +253,8 @@ async def ffmpeg_split_video(
                 out_path.unlink(missing_ok=True)
             if multi_streams:
                 multi_streams = False
+                # Don't count the codec-fallback retry against the iteration budget.
+                iteration -= 1
                 continue
             for part in parts:
                 part.unlink(missing_ok=True)

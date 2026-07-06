@@ -40,6 +40,8 @@ def _truncate_filename(name: str, max_length: int = 60) -> str:
     import os.path
     base, ext = os.path.splitext(name)
     ext_len = len(ext)
+    if ext_len >= max_length:
+        return name[:max_length]
     remain = max_length - ext_len
     base = base[:remain]
     return f"{base}{ext}"
